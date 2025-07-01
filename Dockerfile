@@ -1,14 +1,23 @@
-# Utiliser une image de base Java
-FROM openjdk:17-jdk-slim
+# Étape 1 : builder le projet Maven
+FROM maven:3.9.1-eclipse-temurin-17-alpine AS build
 
-# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copier le JAR compilé dans le conteneur
-COPY target/my_canevas-0.0.1-SNAPSHOT.jar app.jar
+# Copier les fichiers pom.xml et sources
+COPY pom.xml .
+COPY src ./src
 
-# Exposer le port utilisé par l'application
-EXPOSE 8080
+# Build du projet sans tests pour gagner du temps
+RUN mvn clean package -DskipTests
 
-# Définir la commande pour exécuter l'application
+# Étape 2 : créer l’image finale avec le JAR généré
+FROM eclipse-temurin:17-jdk-alpine
+
+WORKDIR /app
+
+# Copier le JAR depuis l'étape précédente
+COPY --from=build /app/target/my_canevas-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8081
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
